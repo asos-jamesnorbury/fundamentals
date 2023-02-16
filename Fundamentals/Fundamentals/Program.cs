@@ -66,7 +66,8 @@ internal class Program
 
     private static void Modify(Person person)
     {
-        person.Name = "Someone else!";
+        var newPerson = person.Copy();
+        newPerson.Name = "Someone";
         Log($"Name = {person.Name}");
     }
 
@@ -74,6 +75,7 @@ internal class Program
     private class Person
     {
         public string Name { get; set; }
+        public Person Copy() => new Person { Name = Name };
     }
 
     #endregion
