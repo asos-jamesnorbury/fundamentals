@@ -72,7 +72,7 @@ public class PersistFileRequestHandlerShould
     }
 
     [Fact]
-    public async Task AppendGuidToOutputPath_GivenContentDownloaded()
+    public async Task AppendGuidToOutputPathAsSubFolder_GivenContentDownloaded()
     {
         // We are following a TDD approach, so are writing the test before the implementation.
         var url = "www.google.co.uk";
@@ -105,6 +105,7 @@ public class PersistFileRequestHandlerShould
         var guidString = pathParts.Last();
 
         // If guidString is a valid guid this returns true, otherwise it returns false.
+        // We don't care about the output GUID so can use _ to discard it.
         return Guid.TryParse(guidString, out var _);
     }
 }
