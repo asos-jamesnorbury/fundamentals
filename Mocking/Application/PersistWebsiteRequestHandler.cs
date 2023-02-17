@@ -12,9 +12,9 @@ public class PersistWebsiteRequestHandler
         _storage = storage;
     }
 
-    public async Task HandleAsync(PersistWebsiteRequest request)
+    public async Task HandleAsync(string url)
     {
-        var response = await _downloader.GetAsync(request.Url);
+        var response = await _downloader.GetAsync(url);
         if (response == null)
         {
             return;

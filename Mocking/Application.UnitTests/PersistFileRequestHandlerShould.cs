@@ -11,9 +11,8 @@ public class PersistFileRequestHandlerShould
         // First, we set up all the values which we know are going to be used in our test.
         // We create them as variables so we can use them as input, but also verify
         // the expected output.
-        var requestUrl = "www.google.co.uk";
+        var url = "www.google.co.uk";
         var response = "content";
-        var request = new PersistWebsiteRequest { Url = requestUrl };
 
         // Next, we create the mocks which are passed into the class we're testing.
         // Using the Moq framework allows us to set pre-defined responses
@@ -35,12 +34,12 @@ public class PersistFileRequestHandlerShould
         // method is called. Providing a response allows you to test the rest of
         // your method after the mock is called. Different return values can
         // be provided to test different scenarios.
-        mockDownloader.Setup(x => x.GetAsync(requestUrl)).ReturnsAsync(response);
+        mockDownloader.Setup(x => x.GetAsync(url)).ReturnsAsync(response);
         var mockStorage = new Mock<IStorage>();
 
         var sut = new PersistWebsiteRequestHandler(mockDownloader.Object, mockStorage.Object);
 
-        await sut.HandleAsync(request);
+        await sut.HandleAsync(url);
 
         // The Verify method allows you to determine if your mock has been used in the way
         // you expected. This is useful to let you assert something has happend when
@@ -54,5 +53,58 @@ public class PersistFileRequestHandlerShould
         // accept any string which is passed in as the path to
         // this method.
         mockStorage.Verify(x => x.SaveAsync(response, It.IsAny<string>()), Times.Once());
+    }
+
+    [Fact]
+    public async Task ReturnEarly_GivenNothingDownloded()
+    {
+        var mockDownloader = new Mock<IWebsiteDownloader>();
+        var storage = new Mock<IStorage>();
+        var sut = new PersistWebsiteRequestHandler(mockDownloader.Object, storage.Object);
+
+        await sut.HandleAsync("");
+
+        // As we are verifying that a method was not called, we aren't able to specify
+        // an expected value for the SaveAsync method like we did before.
+        // We are able to use the It.IsAny<> method to ensure that
+        // this method was never called with any input.
+        storage.Verify(x => x.SaveAsync(It.IsAny<string>(), It.IsAny<string>()), Times.Never());
+    }
+
+    [Fact]
+    public async Task AppendGuidToOutputPath_GivenContentDownloaded()
+    {
+        // We are following a TDD approach, so are writing the test before the implementation.
+        var url = "www.google.co.uk";
+        var response = "<html>Google</html>";
+        var mockDownloader = new Mock<IWebsiteDownloader>();
+
+        // We mock IWebsiteDownloder.GetAsync() so we're able to reach the end of the method
+        // to test the functionality we're going to implement.
+        mockDownloader.Setup(x => x.GetAsync(url)).ReturnsAsync(response);
+        var mockStorage = new Mock<IStorage>();
+
+        var sut = new PersistWebsiteRequestHandler(mockDownloader.Object, mockStorage.Object);
+
+        await sut.HandleAsync(url);
+
+        // Now we want to test something has happened again but we don't know exactly what.
+        // As a new GUID will be generated and we don't know what the value will be,
+        // we can use the It.Is<> method to set a condition to allow a value
+        // to be accepted if it meets our requirement.
+
+        // If this is a simple statement it can all be nested in a single lambda, however
+        // if there is more complicated logic it can be refactored to a separate
+        // method which returns a bool to determine if our condition is met.
+        mockStorage.Verify(storage => storage.SaveAsync(response, It.Is<string>(path => EndsWithGuid(path))), Times.Once());
+    }
+
+    private static bool EndsWithGuid(string path)
+    {
+        var pathParts = path.Split(Path.DirectorySeparatorChar, StringSplitOptions.RemoveEmptyEntries);
+        var guidString = pathParts.Last();
+
+        // If guidString is a valid guid this returns true, otherwise it returns false.
+        return Guid.TryParse(guidString, out var _);
     }
 }
