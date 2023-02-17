@@ -88,7 +88,8 @@ public class PersistFileRequestHandlerShould
 
         await sut.HandleAsync(url);
 
-        // Now we want to test something has happened again but we don't know exactly what.
+        // Now we want to test something has happened again but we don't know exactly what the string will be.
+        // We can't use the It.IsAny<> method here as there are some conditions on what is correct.
         // As a new GUID will be generated and we don't know what the value will be,
         // we can use the It.Is<> method to set a condition to allow a value
         // to be accepted if it meets our requirement.
