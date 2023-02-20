@@ -1,3 +1,4 @@
+using FluentAssertions;
 using Moq;
 using Xunit;
 
@@ -99,6 +100,53 @@ public class PersistFileRequestHandlerShould
         // method which returns a bool to determine if our condition is met.
         mockStorage.Verify(storage => storage.Save(response, It.Is<string>(path => EndsWithGuid(path))), Times.Once());
     }
+
+    [Fact]
+    public void ThrowCustomException_WhenSavingResponse_GivenDirectoryNotFound()
+    {
+        // Again following a TDD aproach, we want to ensure our application handles exceptions
+        // correctly when one of the dependencies throws an exception.
+        var response = "<html>Hello, world!</html>";
+        var mockDownloader = new Mock<IWebsiteDownloader>();
+        mockDownloader.Setup(x => x.Get(It.IsAny<string>())).Returns(response);
+        var mockStorage = new Mock<IStorage>();
+
+        // Like using Setup and Return, we are also able to throw exceptions when the mock is called.
+        mockStorage
+            .Setup(x => x.Save(It.IsAny<string>(), It.IsAny<string>()))
+            .Throws(new DirectoryNotFoundException());
+
+        var sut = new PersistWebsiteRequestHandler(mockDownloader.Object, mockStorage.Object);
+
+        // Using a try/catch we're able to verify that the correct exception has been thrown.
+        try
+        {
+            sut.Handle("www.google.co.uk");
+        }
+        catch (Exception ex)
+        {
+            Assert.IsType<WebsiteStorageException>(ex);
+        }
+    }
+
+    [Fact]
+    public void ThrowCustomException_WhenSavingResponse_GivenDirectoryNotFound_Fluent()
+    {
+        var response = "<html>Hello, world!</html>";
+        var mockDownloader = new Mock<IWebsiteDownloader>();
+        mockDownloader.Setup(x => x.Get(It.IsAny<string>())).Returns(response);
+        var mockStorage = new Mock<IStorage>();
+        mockStorage
+            .Setup(x => x.Save(It.IsAny<string>(), It.IsAny<string>()))
+            .Throws(new DirectoryNotFoundException());
+
+        var sut = new PersistWebsiteRequestHandler(mockDownloader.Object, mockStorage.Object);
+
+        var act = () => sut.Handle("www.google.co.uk");
+
+        act.Should().ThrowExactly<WebsiteStorageException>();
+    }
+
     private static bool EndsWithGuid(string path)
     {
         var pathParts = path.Split(Path.DirectorySeparatorChar, StringSplitOptions.RemoveEmptyEntries);
