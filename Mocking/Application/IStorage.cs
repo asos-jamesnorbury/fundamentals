@@ -2,5 +2,5 @@
 
 public interface IStorage
 {
-    Task SaveAsync(string content, string path);
+    void Save(string content, string path);
 }

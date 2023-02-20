@@ -12,14 +12,14 @@ public class PersistWebsiteRequestHandler
         _storage = storage;
     }
 
-    public async Task HandleAsync(string url)
+    public void Handle(string url)
     {
-        var response = await _downloader.GetAsync(url);
+        var response = _downloader.Get(url);
         if (response == null)
         {
             return;
         }
 
-        await _storage.SaveAsync(response, OUTPUT_PATH);
+        _storage.Save(response, OUTPUT_PATH);
     }
 }

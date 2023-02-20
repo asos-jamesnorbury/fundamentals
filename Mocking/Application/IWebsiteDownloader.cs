@@ -2,5 +2,5 @@
 
 public interface IWebsiteDownloader
 {
-    Task<string> GetAsync(string url);
+    string Get(string url);
 }
