@@ -37,8 +37,9 @@ public class PersistFileRequestHandlerShould
         // be provided to test different scenarios.
         mockDownloader.Setup(x => x.Get(url)).Returns(response);
         var mockStorage = new Mock<IStorage>();
+        var mockLogger = new Mock<ILogger>();
 
-        var sut = new PersistWebsiteRequestHandler(mockDownloader.Object, mockStorage.Object);
+        var sut = new PersistWebsiteRequestHandler(mockDownloader.Object, mockStorage.Object, mockLogger.Object);
 
         sut.Handle(url);
 
@@ -60,8 +61,9 @@ public class PersistFileRequestHandlerShould
     public void ReturnEarly_GivenNothingDownloded()
     {
         var mockDownloader = new Mock<IWebsiteDownloader>();
-        var storage = new Mock<IStorage>();
-        var sut = new PersistWebsiteRequestHandler(mockDownloader.Object, storage.Object);
+        var mockStorage = new Mock<IStorage>();
+        var mockLogger = new Mock<ILogger>();
+        var sut = new PersistWebsiteRequestHandler(mockDownloader.Object, mockStorage.Object, mockLogger.Object);
 
         sut.Handle("");
 
@@ -69,7 +71,7 @@ public class PersistFileRequestHandlerShould
         // an expected value for the Save method like we did before.
         // We are able to use the It.IsAny<> method to ensure that
         // this method was never called with any input.
-        storage.Verify(x => x.Save(It.IsAny<string>(), It.IsAny<string>()), Times.Never());
+        mockStorage.Verify(x => x.Save(It.IsAny<string>(), It.IsAny<string>()), Times.Never());
     }
 
     [Fact]
@@ -84,8 +86,9 @@ public class PersistFileRequestHandlerShould
         // to test the functionality we're going to implement.
         mockDownloader.Setup(x => x.Get(url)).Returns(response);
         var mockStorage = new Mock<IStorage>();
+        var mockLogger = new Mock<ILogger>();
 
-        var sut = new PersistWebsiteRequestHandler(mockDownloader.Object, mockStorage.Object);
+        var sut = new PersistWebsiteRequestHandler(mockDownloader.Object, mockStorage.Object, mockLogger.Object);
 
         sut.Handle(url);
 
@@ -110,42 +113,53 @@ public class PersistFileRequestHandlerShould
         var mockDownloader = new Mock<IWebsiteDownloader>();
         mockDownloader.Setup(x => x.Get(It.IsAny<string>())).Returns(response);
         var mockStorage = new Mock<IStorage>();
+        var mockLogger = new Mock<ILogger>();
 
         // Like using Setup and Return, we are also able to throw exceptions when the mock is called.
         mockStorage
             .Setup(x => x.Save(It.IsAny<string>(), It.IsAny<string>()))
             .Throws(new DirectoryNotFoundException());
 
-        var sut = new PersistWebsiteRequestHandler(mockDownloader.Object, mockStorage.Object);
+        var sut = new PersistWebsiteRequestHandler(mockDownloader.Object, mockStorage.Object, mockLogger.Object);
 
-        // Using a try/catch we're able to verify that the correct exception has been thrown.
-        try
-        {
-            sut.Handle("www.google.co.uk");
-        }
-        catch (Exception ex)
-        {
-            Assert.IsType<WebsiteStorageException>(ex);
-        }
+        // Using a Assert.Throws we're able to verify that the correct exception has been thrown.
+        // This will catch our exception and verify it's the right type for us.
+        // We must provide the code in a lambda so it can wrap it in
+        // a try / catch block and assert the result.
+        Assert.Throws<WebsiteStorageException>(() => sut.Handle("www.google.co.uk"));
     }
 
-    [Fact]
-    public void ThrowCustomException_WhenSavingResponse_GivenDirectoryNotFound_Fluent()
+    // We can use the Theory attribute instead of Fact to provide multiple inputs to a test.
+    [Theory]
+    // Usually we're able to use InlineData to provide simple parameters. However, when
+    // we want to pass classes as a parameter, xUnit requires us to use MemberData
+    // or ClassData attributes to provide the parameters.
+    [MemberData(nameof(ExceptionAndResponseData))]
+    public void LogErrorMessage_WhenErrorThrownWhileSaving_GiveValidWebsite(Exception thrownException, string expectedMessage)
     {
-        var response = "<html>Hello, world!</html>";
         var mockDownloader = new Mock<IWebsiteDownloader>();
-        mockDownloader.Setup(x => x.Get(It.IsAny<string>())).Returns(response);
+        mockDownloader.Setup(x => x.Get(It.IsAny<string>())).Returns("<html></html>");
         var mockStorage = new Mock<IStorage>();
-        mockStorage
-            .Setup(x => x.Save(It.IsAny<string>(), It.IsAny<string>()))
-            .Throws(new DirectoryNotFoundException());
 
-        var sut = new PersistWebsiteRequestHandler(mockDownloader.Object, mockStorage.Object);
+        // We're able to setup the method to throw like before, except we're using the exception provided.
+        mockStorage.Setup(x => x.Save(It.IsAny<string>(), It.IsAny<string>())).Throws(thrownException);
+        var mockLogger = new Mock<ILogger>();
 
-        var act = () => sut.Handle("www.google.co.uk");
+        var sut = new PersistWebsiteRequestHandler(mockDownloader.Object, mockStorage.Object, mockLogger.Object);
 
-        act.Should().ThrowExactly<WebsiteStorageException>();
+        Assert.Throws<WebsiteStorageException>(() => sut.Handle("url"));
+        // Similarly, we're able to verify the expected outcome using the message provided.
+        mockLogger.Verify(x => x.Error(expectedMessage), Times.Once);
     }
+
+    // To provide our test with instances of classes, we need to use the MemberData or ClassData attributes.
+    // This lets us provide an array of arrays, which matches the parameters of our method.
+    // The test will be ran for each element in the data array provided.
+    public static IEnumerable<object[]> ExceptionAndResponseData => new List<object[]>
+    {
+        new object[] { new DirectoryNotFoundException(), "Output path does not exist." },
+        new object[] { new InvalidOperationException(), "An unexpected error occurred." }
+    };
 
     private static bool EndsWithGuid(string path)
     {
@@ -156,4 +170,5 @@ public class PersistFileRequestHandlerShould
         // We don't care about the output GUID so can use _ to discard it.
         return Guid.TryParse(guidString, out var _);
     }
+
 }
