@@ -3,7 +3,7 @@ using System.Runtime.CompilerServices;
 
 namespace Fundamentals;
 
-internal class Program
+internal class InteractiveDemo
 {
     static void Main(string[] args)
     {
@@ -13,7 +13,8 @@ internal class Program
             Console.WriteLine("2. Loops");
             Console.WriteLine("3. Conditions");
             Console.WriteLine("4. Control flow");
-            Console.Write("Select demo: ");
+            Console.WriteLine("5. Variables");
+            Console.Write("Enter demo number: ");
             var demo = Console.ReadLine();
             switch (demo)
             {
@@ -28,6 +29,9 @@ internal class Program
                     break;
                 case "4":
                     ControlFlow();
+                    break;
+                case "5":
+                    Variables.Run();
                     break;
                 default:
                     return;

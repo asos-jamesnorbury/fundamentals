@@ -5,7 +5,7 @@ namespace Fundamentals;
 
 #region Single responsibility
 
-public class Person_
+public class NotSolidPerson
 {
     public string Name { get; set; }
     public DateOnly DateOfBirth { get; set; }
@@ -19,7 +19,7 @@ public class Person_
 
 #region solution
 
-public class Person
+public class SolidPerson
 {
     public string Name { get; set; }
     public DateOnly DateOfBirth { get; set; }
@@ -27,7 +27,7 @@ public class Person
 
 public class PersonRepository
 {
-    public void Save(Person person)
+    public void Save(SolidPerson person)
     {
         // Save person in database
     }
@@ -39,7 +39,7 @@ public class PersonRepository
 
 #region Open / close principal
 
-public class Animal_
+public class NotSolidAnimal
 {
     public string Name { get; set; }
 
@@ -85,11 +85,11 @@ public class Dog : Animal
 
 #region Liskov substitution
 
-public class Calculator_
+public class NotSolidCalculator
 {
     protected readonly int[] _numbers;
 
-    public Calculator_(int[] numbers)
+    public NotSolidCalculator(int[] numbers)
     {
         _numbers = numbers;
     }
@@ -97,9 +97,9 @@ public class Calculator_
     public int Sum() => _numbers.Sum();
 }
 
-public class MinusCalculator_ : Calculator_
+public class NotSolidMinusCalculator : NotSolidCalculator
 {
-    public MinusCalculator_(int[] numbers) : base(numbers)
+    public NotSolidMinusCalculator(int[] numbers) : base(numbers)
     {
     }
 

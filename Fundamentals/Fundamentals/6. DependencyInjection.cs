@@ -91,11 +91,6 @@ public class AppInsightsLogger : ILogger
         _appInsightsClient.LogInformation(message);
     }
 }
-
-
-
-
-
 #endregion
 
 #region Models
